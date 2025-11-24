@@ -70,12 +70,12 @@ const OrderModal = ({ open, onClose, order, table, onSaved }) => {
         items: isServedOrder
           ? []
           : order.items?.map((i) => ({
-              _id: i._id,
-              food: i.food?._id || i.food,
-              quantity: i.quantity,
-              note: i.note || "",
-              status: i.status || 'pending',
-            })) || [],
+            _id: i._id,
+            food: i.food?._id || i.food,
+            quantity: i.quantity,
+            note: i.note || "",
+            status: i.status || 'pending',
+          })) || [],
         orderNote: order.orderNote || "",
         status: order.status || "pending",
       });
@@ -99,8 +99,8 @@ const OrderModal = ({ open, onClose, order, table, onSaved }) => {
     const exists = form.items.find((i) => i.food === food._id);
     const updated = exists
       ? form.items.map((i) =>
-          i.food === food._id ? { ...i, quantity: i.quantity + 1 } : i
-        )
+        i.food === food._id ? { ...i, quantity: i.quantity + 1 } : i
+      )
       : [...form.items, { food: food._id, quantity: 1, note: "" }];
     setForm({ ...form, items: updated });
   };
@@ -177,40 +177,37 @@ const OrderModal = ({ open, onClose, order, table, onSaved }) => {
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
       <ToastContainer position="top-right" autoClose={2000} hideProgressBar theme="light" />
 
-      <div className="relative bg-gradient-to-br from-emerald-900/80 to-green-800/80 w-[1000px] rounded-2xl border border-emerald-600/60 p-6 shadow-[0_0_25px_rgba(34,197,94,0.4)] animate-fade-in">
+      <div className="relative bg-white w-[1000px] rounded-2xl border border-gray-200 p-6 shadow-2xl animate-fade-in">
         <button
           onClick={onClose}
-          className="absolute top-3 right-3 text-emerald-300 hover:text-white transition"
+          className="absolute top-3 right-3 text-gray-500 hover:text-black transition"
         >
           <X size={22} />
         </button>
 
         {/* Tiêu đề */}
-        <h2 className="text-2xl font-bold mb-5 text-emerald-100">
+        <h2 className="text-2xl font-bold mb-5 text-gray-700">
           {isEditMode ? "✏️ Chỉnh sửa Order" : "🧾 Tạo Order mới"} —{" "}
-          <span className="text-emerald-400 font-bold">
+          <span className="text-green-600 font-bold">
             Bàn {table?.tableNumber || "?"}
           </span>
         </h2>
 
-        {/* 2 cột chính */}
         <div className="flex gap-6">
-          {/* Danh sách món ăn */}
+          {/* Danh mục */}
           <div className="flex-1 flex flex-col">
-            {/* Danh mục */}
             <div className="flex gap-2 mb-3 overflow-x-auto">
               {categories.map((cat) => (
                 <button
                   key={cat._id}
                   onClick={() => setSelectedCategory(cat)}
-                  className={`px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-all ${
-                    selectedCategory?._id === cat._id
-                      ? "bg-emerald-600 text-white shadow-[0_0_10px_#22c55e]"
-                      : "bg-emerald-800/40 text-emerald-200 hover:bg-emerald-700/60"
-                  }`}
+                  className={`px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-all ${selectedCategory?._id === cat._id
+                      ? "bg-green-600 text-white shadow"
+                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                    }`}
                 >
                   {cat.name}
                 </button>
@@ -218,38 +215,38 @@ const OrderModal = ({ open, onClose, order, table, onSaved }) => {
             </div>
 
             {/* Danh sách món */}
-            <div className="flex-1 custom-scroll bg-gradient-to-br from-slate-900/70 to-emerald-900/30 rounded-2xl p-5 border border-emerald-700/60 shadow-inner overflow-y-auto max-h-[450px]">
-              <h3 className="text-lg font-semibold mb-4 text-emerald-200">
+            <div className="flex-1 bg-gray-50 rounded-2xl p-5 border border-gray-200 shadow-inner overflow-y-auto max-h-[450px]">
+              <h3 className="text-lg font-semibold mb-4 text-gray-700">
                 🌿 Danh sách món ăn
               </h3>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+
+              {/* 2 sản phẩm mỗi hàng */}
+              <div className="grid grid-cols-2 gap-4">
                 {foods.map((food) => (
                   <div
                     key={food._id}
                     onClick={() => handleAddItem(food)}
-                    className="group bg-slate-900/60 rounded-xl border border-emerald-700/40 hover:border-emerald-400 overflow-hidden shadow-md hover:shadow-[0_0_16px_#22c55e90] transition-all duration-300 cursor-pointer"
+                    className="group bg-white rounded-xl border border-gray-200 hover:border-green-500 overflow-hidden shadow-sm hover:shadow-lg transition cursor-pointer"
                   >
-                    <div className="relative">
-                      <img
-                        src={food.image || "/no-image.jpg"}
-                        alt={food.name}
-                        className="w-full h-28 object-cover group-hover:scale-105 transition-transform duration-300"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-all"></div>
-                    </div>
+                    <img
+                      src={food.image || "/no-image.jpg"}
+                      alt={food.name}
+                      className="w-full h-32 object-cover group-hover:scale-105 transition"
+                    />
                     <div className="p-3">
-                      <h4 className="font-semibold text-sm text-white truncate mb-1">
+                      <h4 className="font-semibold text-sm text-gray-800 truncate mb-1">
                         {food.name}
                       </h4>
-                      <p className="text-emerald-400 text-sm font-medium mb-3">
+                      <p className="text-green-600 text-sm font-medium mb-3">
                         {food.price.toLocaleString()}₫
                       </p>
+
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
                           handleAddItem(food);
                         }}
-                        className="w-full py-2 rounded-lg bg-gradient-to-r from-emerald-600 to-green-500 hover:from-emerald-500 hover:to-green-400 text-white transition-all shadow-[0_0_12px_#22c55e80] font-medium"
+                        className="w-full py-2 rounded-lg bg-green-500 hover:bg-green-400 text-white shadow font-medium"
                       >
                         <Plus size={14} className="inline-block mr-1" />
                         Thêm món
@@ -262,37 +259,38 @@ const OrderModal = ({ open, onClose, order, table, onSaved }) => {
           </div>
 
           {/* Món đã chọn */}
-          <div className="flex-1 bg-slate-900/70 rounded-2xl p-5 border border-emerald-700/60 shadow-inner flex flex-col">
-            <h3 className="text-lg font-semibold mb-4 text-emerald-200">
+          <div className="flex-1 bg-gray-50 rounded-2xl p-5 border border-gray-200 shadow-inner flex flex-col">
+            <h3 className="text-lg font-semibold mb-4 text-gray-700">
               🧩 Món đã chọn
             </h3>
 
-            {!form.items.length && !order?.addedItems?.length ? (
-              <p className="text-emerald-300/70 italic text-center my-8">
+            {!form.items.length ? (
+              <p className="text-gray-500 text-center italic my-8">
                 — Chưa có món nào —
               </p>
             ) : (
-              <div className="space-y-4 overflow-y-auto max-h-[380px] pr-2 custom-scroll">
+              <div className="space-y-4 overflow-y-auto max-h-[380px] pr-2">
                 {form.items.map((item) => {
                   const food =
                     foods.find((f) => f._id === item.food) ||
                     allFoods.find((f) => f._id === item.food);
+
                   return (
                     <div
-                      key={`new-${item.food}`}
-                      className="flex items-center justify-between bg-emerald-900/40 rounded-xl p-3 border border-emerald-700/50"
+                      key={item.food}
+                      className="flex items-center justify-between bg-white rounded-xl p-3 border border-gray-200 shadow-sm"
                     >
                       <div className="flex items-center gap-3">
                         <img
                           src={food?.image || "/no-image.jpg"}
-                          alt={food?.name || ""}
-                          className="w-14 h-14 object-cover rounded-lg border border-emerald-700"
+                          alt={food?.name}
+                          className="w-14 h-14 rounded-lg object-cover border"
                         />
                         <div>
-                          <p className="font-semibold text-sm text-white">
-                            {food?.name || "Món đã xóa"}
+                          <p className="font-semibold text-sm text-gray-800">
+                            {food?.name}
                           </p>
-                          <p className="text-emerald-400 text-xs">
+                          <p className="text-green-600 text-xs">
                             {(food?.price || 0).toLocaleString()}₫
                           </p>
                         </div>
@@ -303,39 +301,28 @@ const OrderModal = ({ open, onClose, order, table, onSaved }) => {
                           type="number"
                           min={1}
                           value={item.quantity}
-                          disabled={isServedOrder}
                           onChange={(e) =>
-                            handleChangeItem(
-                              item.food,
-                              "quantity",
-                              parseInt(e.target.value)
-                            )
+                            handleChangeItem(item.food, "quantity", +e.target.value)
                           }
-                          className="w-14 text-center bg-emerald-800/50 rounded-md py-1 text-sm text-white"
+                          className="w-14 text-center bg-gray-100 rounded-md py-1 text-sm"
                         />
+
                         <input
                           type="text"
                           value={item.note}
-                          disabled={isServedOrder}
                           placeholder="Ghi chú"
                           onChange={(e) =>
                             handleChangeItem(item.food, "note", e.target.value)
                           }
-                          className="bg-emerald-800/50 rounded-md py-1 px-2 text-sm w-36 text-white"
+                          className="bg-gray-100 rounded-md py-1 px-2 text-sm w-36"
                         />
-                        {/* Hide remove button if order is served OR item is being prepared/ready */}
-                        {(() => {
-                          const s = (item.status || "").toString().toLowerCase();
-                          const chefLocked = s === 'preparing' || s === 'ready' || s === 'completed';
-                          return (!isServedOrder && !chefLocked) ? (
-                            <button
-                              onClick={() => handleRemoveItem(item.food)}
-                              className="text-red-400 hover:text-red-500 transition"
-                            >
-                              <Trash2 size={16} />
-                            </button>
-                          ) : null;
-                        })()}
+
+                        <button
+                          onClick={() => handleRemoveItem(item.food)}
+                          className="text-red-500 hover:text-red-600 transition"
+                        >
+                          <Trash2 size={16} />
+                        </button>
                       </div>
                     </div>
                   );
@@ -343,9 +330,9 @@ const OrderModal = ({ open, onClose, order, table, onSaved }) => {
               </div>
             )}
 
-            <div className="mt-auto pt-4 border-t border-emerald-700 text-right text-white">
+            <div className="mt-auto pt-4 border-t border-gray-300 text-right text-gray-800">
               Tổng:{" "}
-              <span className="text-emerald-400 text-lg font-semibold">
+              <span className="text-green-600 text-lg font-semibold">
                 {totalAmount.toLocaleString()}₫
               </span>
             </div>
@@ -355,75 +342,42 @@ const OrderModal = ({ open, onClose, order, table, onSaved }) => {
         {/* Ghi chú & trạng thái */}
         <div className="mt-6 flex gap-4">
           <div className="flex-1">
-            <label className="block mb-1 text-emerald-200 text-sm">
-              Ghi chú Order:
-            </label>
+            <label className="block mb-1 text-gray-600 text-sm">Ghi chú Order:</label>
             <textarea
               value={form.orderNote}
               onChange={(e) => setForm({ ...form, orderNote: e.target.value })}
               rows={2}
-              className="w-full bg-emerald-900/40 rounded-lg p-2 text-sm text-white border border-emerald-700"
+              className="w-full bg-gray-100 rounded-lg p-2 text-sm border border-gray-300"
             />
           </div>
 
           <div>
-            <label className="block mb-1 text-emerald-200 text-sm">
-              Trạng thái:
-            </label>
+            <label className="block mb-1 text-gray-600 text-sm">Trạng thái:</label>
             <select
               value={form.status}
               onChange={(e) => setForm({ ...form, status: e.target.value })}
-              className="bg-emerald-900/40 px-3 py-2 rounded-lg text-sm text-white border border-emerald-700"
+              className="bg-gray-100 px-3 py-2 rounded-lg text-sm border border-gray-300"
             >
-              {(() => {
-                switch (form.status) {
-                  case "pending":
-                    return (
-                      <>
-                        <option value="pending">Chờ xử lý</option>
-                        <option value="preparing">Đang chuẩn bị</option>
-                      </>
-                    );
-                  case "preparing":
-                    return (
-                      <>
-                        <option value="preparing">Đang chuẩn bị</option>
-                        <option value="served">Đã phục vụ</option>
-                      </>
-                    );
-                  case "served":
-                    return <option value="served">Đã phục vụ</option>;
-                  case "paid":
-                    return <option value="paid">Đã thanh toán</option>;
-                  default:
-                    return null;
-                }
-              })()}
+              <option value="pending">Chờ xử lý</option>
+              <option value="preparing">Đang chuẩn bị</option>
+              <option value="served">Đã phục vụ</option>
+              <option value="paid">Đã thanh toán</option>
             </select>
           </div>
         </div>
 
-        {/* Nút hành động */}
         <div className="mt-6 flex justify-end gap-3">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 bg-emerald-800/60 hover:bg-emerald-700/60 rounded-lg text-white transition-all"
-          >
+          <button className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg text-gray-700">
             Hủy
           </button>
-          <button
-            onClick={handleSubmit}
-            className="px-4 py-2 rounded-lg bg-gradient-to-r from-emerald-600 to-green-500 hover:from-emerald-500 hover:to-green-400 text-white shadow-[0_0_12px_#22c55e80] font-semibold transition-all"
-          >
-            {isEditMode
-              ? isServedOrder
-                ? "Thêm món mới"
-                : "Cập nhật Order"
-              : "Lưu Order"}
+
+          <button className="px-4 py-2 rounded-lg bg-green-600 hover:bg-green-500 text-white shadow font-semibold">
+            {isEditMode ? "Cập nhật Order" : "Lưu Order"}
           </button>
         </div>
       </div>
     </div>
+
   );
 };
 

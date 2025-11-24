@@ -213,7 +213,6 @@ const fetchOrderDetail = async (orderId) => {
                         Đã phục vụ
                     </span>
                     </div>
-
                     <p className="text-sm text-gray-500 mt-1">
                     Mã Order:{" "}
                     <span className="font-mono text-gray-700">
