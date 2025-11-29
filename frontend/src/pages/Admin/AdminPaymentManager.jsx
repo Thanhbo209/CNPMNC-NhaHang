@@ -1,31 +1,43 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import { Search, Trash2 } from "lucide-react";
-import PaymentModal from "../../components/Admin/modal/PaymentModal";
-import OrderDetailModal from "../../components/Admin/modal/OrderDetailModal";
+import { Search, Trash2, Printer, Merge, Split } from "lucide-react";
+import { toast } from "react-toastify";
+import PaymentModal from "../../components/Cashier/modal/PaymentModal";
+import OrderDetailModal from "../../components/Cashier/modal/OrderDetailModal";
+import MergeModal from "../../components/Cashier/modal/MergeModal";
 
 const API_URL = "http://localhost:2095/api/payments";
 const ORDER_URL = "http://localhost:2095/api/orders";
 
 const AdminPaymentManager = () => {
   const [payments, setPayments] = useState([]);
+  const [page, setPage] = useState(1);
+  const [pages, setPages] = useState(1);
+  const [limit, setLimit] = useState(10);
+  const [total, setTotal] = useState(0);
   const [pendingOrders, setPendingOrders] = useState([]);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [selectedPayment, setSelectedPayment] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedOrderDetail, setSelectedOrderDetail] = useState(null);
   const [isOrderDetailOpen, setIsOrderDetailOpen] = useState(false);
-
+  const [ordersToMerge, setOrdersToMerge] = useState([]);
+  const [orderToSplit, setOrderToSplit] = useState(null);
+  const [isMergeModalOpen, setIsMergeModalOpen] = useState(false);
   // 🟩 Lấy danh sách payment
-  const fetchPayments = async () => {
+  const fetchPayments = async (p = page, l = limit) => {
     try {
-      const res = await axios.get(API_URL);
-      setPayments(res.data);
+      const res = await axios.get(`${API_URL}?page=${p}&limit=${l}`);
+      const data = res.data || {};
+      setPayments(Array.isArray(data.payments) ? data.payments : []);
+      setPage(data.page || 1);
+      setPages(data.pages || 1);
+      setLimit(data.limit || l);
+      setTotal(data.total || 0);
     } catch (err) {
       console.error("Lỗi khi lấy payment:", err);
     }
   };
-  
 
   // 🟦 Lấy danh sách order cần thanh toán
   const fetchPendingOrders = async () => {
@@ -38,21 +50,18 @@ const AdminPaymentManager = () => {
     }
   };
 
-  // 🟢 Hàm lấy chi tiết order (theo orderId)
-
-const fetchOrderDetail = async (orderId) => {
-  try {
-    const res = await axios.get(`${ORDER_URL}/${orderId}`);
-    setSelectedOrderDetail([res.data]); // ✅ Chuyển thành mảng
-    setIsOrderDetailOpen(true);
-  } catch (err) {
-    console.error("Lỗi khi lấy chi tiết order:", err);
-  }
-};
-
+  const fetchOrderDetail = async (orderId) => {
+    try {
+      const res = await axios.get(`${ORDER_URL}/${orderId}`);
+      setSelectedOrderDetail([res.data]);
+      setIsOrderDetailOpen(true);
+    } catch (err) {
+      console.error("Lỗi khi lấy chi tiết order:", err);
+    }
+  };
 
   useEffect(() => {
-    fetchPayments();
+    fetchPayments(1, limit);
     fetchPendingOrders();
   }, []);
 
@@ -62,14 +71,81 @@ const fetchOrderDetail = async (orderId) => {
     setIsModalOpen(true);
   };
 
-  const handleDelete = async (id) => {
-    if (window.confirm("Bạn có chắc muốn xóa thanh toán này?")) {
-      try {
-        await axios.delete(`${API_URL}/${id}`);
-        fetchPayments();
-      } catch (err) {
-        console.error("Lỗi khi xóa:", err);
-      }
+  // Deleting payments is not allowed. Remove/delete action on frontend.
+  const handleDelete = (id) => {
+    toast?.warning?.("Xóa hóa đơn không được phép");
+  };
+
+  const handlePrint = async (paymentId) => {
+    try {
+      const res = await axios.get(`${API_URL}/${paymentId}`);
+      const p = res.data;
+      const order = p.order || {};
+
+      const items = [];
+      if (order.items) items.push(...order.items);
+      if (order.addedItems) items.push(...order.addedItems);
+
+      const html = `
+        <html>
+        <head>
+          <title>Hóa đơn ${p._id}</title>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 20px; }
+            .header { text-align: center; margin-bottom: 12px }
+            table { width: 100%; border-collapse: collapse; }
+            th, td { padding: 6px 8px; border-bottom: 1px solid #ddd; }
+            .right { text-align: right }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h2>Nhà hàng</h2>
+            <div>Hóa đơn: ${p._id}</div>
+            <div>Order: ${order._id || "-"} | Bàn: ${
+        order.table?.tableNumber || order.tableNumber || "-"
+      }</div>
+            <div>Ngày: ${new Date(p.paidAt).toLocaleString("vi-VN")}</div>
+          </div>
+          <table>
+            <thead>
+              <tr><th>Sản phẩm</th><th class="right">SL</th><th class="right">Đơn giá</th><th class="right">Thành</th></tr>
+            </thead>
+            <tbody>
+              ${items
+                .map((it) => {
+                  const name = it.food?.name || "Món đã xóa";
+                  const qty = it.quantity || 0;
+                  const price = it.food?.price || 0;
+                  const line = price * qty || 0;
+                  return `<tr><td>${name}</td><td class="right">${qty}</td><td class="right">${price.toLocaleString(
+                    "vi-VN"
+                  )}₫</td><td class="right">${line.toLocaleString(
+                    "vi-VN"
+                  )}₫</td></tr>`;
+                })
+                .join("")}
+            </tbody>
+          </table>
+          <div style="margin-top:12px; text-align:right">
+            <div>Thành tiền: ${p.subtotal?.toLocaleString("vi-VN") || 0}₫</div>
+            <div>Thuế (${p.taxPercent || 8}%): ${
+        p.taxAmount?.toLocaleString("vi-VN") || 0
+      }₫</div>
+            <div style="font-weight:bold; font-size:1.1em">Tổng: ${
+              p.amount?.toLocaleString("vi-VN") || 0
+            }₫</div>
+            <div>Phương thức: ${p.method || "-"}</div>
+          </div>
+          <script>window.print();</script>
+        </body></html>
+      `;
+
+      const w = window.open("", "_blank", "width=600,height=800");
+      w.document.write(html);
+      w.document.close();
+    } catch (err) {
+      console.error("Lỗi khi in hóa đơn", err);
     }
   };
 
@@ -80,6 +156,35 @@ const fetchOrderDetail = async (orderId) => {
         <h1 className="text-3xl font-bold tracking-wide flex items-center gap-3">
           Quản lý Thanh Toán
         </h1>
+        <div className="mt-2 flex flex-wrap gap-2">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setOrderToSplit(order);
+              setIsSplitModalOpen(true);
+            }}
+            className="flex-none min-w-[160px] px-4 py-2 bg-yellow-100 text-yellow-700 rounded hover:bg-yellow-200 transition flex items-center justify-center gap-2 whitespace-nowrap"
+          >
+            <Split size={16} /> Tách hóa đơn
+          </button>
+
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              if ((pendingOrders || []).length < 2) {
+                toast.warning("Cần ít nhất 2 đơn đang chờ thanh toán để gộp.");
+                return;
+              }
+              // open merge modal — selection handled inside modal
+              setOrdersToMerge([]);
+              setIsMergeModalOpen(true);
+            }}
+            className="flex-none min-w-[160px] px-4 py-2 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition flex items-center justify-center gap-2 whitespace-nowrap"
+          >
+            <Merge size={16} /> Ghép hóa đơn
+          </button>
+        </div>
+        {/* Pagination controls moved to page bottom */}
       </div>
 
       {/* --- Đơn hàng cần thanh toán --- */}
@@ -101,7 +206,6 @@ const fetchOrderDetail = async (orderId) => {
               >
                 {/* Overlay hover */}
                 <div className="absolute inset-0 opacity-0 group-hover:opacity-100 bg-gradient-to-tr from-green-100/20 via-transparent to-green-200/20 blur-2xl transition-all duration-500"></div>
-
                 {/* Nội dung */}
                 <div className="relative z-10 p-5 flex flex-col justify-between h-full">
                   <div className="mb-3">
@@ -113,10 +217,9 @@ const fetchOrderDetail = async (orderId) => {
                         </span>
                       </h3>
                       <span className="px-2 py-1 text-[10px] uppercase bg-green-100 text-green-600 rounded-md font-medium tracking-wider">
-                        Served
+                        Đã phục vụ
                       </span>
                     </div>
-
                     <p className="text-sm text-gray-500 mt-1">
                       Mã Order:{" "}
                       <span className="font-mono text-gray-700">
@@ -168,7 +271,7 @@ const fetchOrderDetail = async (orderId) => {
                   <div className="flex justify-between items-center text-xs text-gray-500 border-t border-gray-300 pt-3 mt-auto">
                     <p>
                       {order.createdAt
-                        ? new Date(order.createdAt).toLocaleString()
+                        ? new Date(order.createdAt).toLocaleString("vi-VN")
                         : ""}
                     </p>
                     <span className="text-gray-400/80 group-hover:text-green-600 transition-colors duration-300">
@@ -252,7 +355,7 @@ const fetchOrderDetail = async (orderId) => {
                     <td className="px-4 py-3 text-center">
                       <div className="flex justify-center gap-3 opacity-80 group-hover:opacity-100 transition">
                         <button
-                          onClick={() => fetchOrderDetail(p.order?._id)}  
+                          onClick={() => fetchOrderDetail(p.order?._id)}
                           className="p-1.5 rounded bg-blue-100 hover:bg-blue-200 text-blue-600 transition-all duration-200 hover:shadow-lg"
                           title="Xem chi tiết đơn hàng"
                         >
@@ -260,11 +363,11 @@ const fetchOrderDetail = async (orderId) => {
                         </button>
 
                         <button
-                          onClick={() => handleDelete(p._id)}
-                          className="p-1.5 rounded bg-red-100 hover:bg-red-200 text-red-600 transition-all duration-200 hover:shadow-lg"
-                          title="Xóa thanh toán"
+                          onClick={() => handlePrint(p._id)}
+                          className="p-1.5 rounded bg-indigo-100 hover:bg-indigo-200 text-indigo-600 transition-all duration-200 hover:shadow-lg"
+                          title="In hóa đơn"
                         >
-                          <Trash2 size={16} />
+                          <Printer size={16} />
                         </button>
                       </div>
                     </td>
@@ -310,6 +413,114 @@ const fetchOrderDetail = async (orderId) => {
           }}
         />
       )}
+
+      {isMergeModalOpen && (
+        <MergeModal
+          pendingOrders={pendingOrders}
+          onClose={() => setIsMergeModalOpen(false)}
+          onMerged={() => {
+            fetchPayments();
+            fetchPendingOrders();
+          }}
+        />
+      )}
+
+      {/* Pagination controls (Chef-style) - placed at page bottom */}
+      <div className="mt-6">
+        <div className="flex items-center justify-between p-3 border-t bg-white">
+          <div className="text-sm text-gray-600">
+            Hiển thị{" "}
+            <span className="font-semibold">
+              {Math.min((page - 1) * limit + 1, total || 0)}
+            </span>{" "}
+            -{" "}
+            <span className="font-semibold">
+              {Math.min(page * limit, total || 0)}
+            </span>{" "}
+            trên <span className="font-semibold">{total || 0}</span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                if (page !== 1) {
+                  setPage(1);
+                  fetchPayments(1, limit);
+                }
+              }}
+              disabled={page === 1}
+              className="px-3 py-1 rounded-md bg-white border text-sm disabled:opacity-50"
+            >
+              {"<<"}
+            </button>
+
+            <button
+              onClick={() => {
+                if (page > 1) {
+                  const np = Math.max(1, page - 1);
+                  setPage(np);
+                  fetchPayments(np, limit);
+                }
+              }}
+              disabled={page === 1}
+              className="px-3 py-1 rounded-md bg-white border text-sm disabled:opacity-50"
+            >
+              Prev
+            </button>
+
+            <div className="flex items-center gap-1">
+              {Array.from({ length: pages })
+                .slice(Math.max(0, page - 3), Math.min(pages, page + 2))
+                .map((_, idx) => {
+                  const pageNum = idx + Math.max(1, page - 2);
+                  return (
+                    <button
+                      key={pageNum}
+                      onClick={() => {
+                        setPage(pageNum);
+                        fetchPayments(pageNum, limit);
+                      }}
+                      className={`px-3 py-1 rounded-md text-sm ${
+                        pageNum === page
+                          ? "bg-gray-900 text-white"
+                          : "bg-white border"
+                      }`}
+                    >
+                      {pageNum}
+                    </button>
+                  );
+                })}
+            </div>
+
+            <button
+              onClick={() => {
+                if (page < pages) {
+                  const np = Math.min(pages, page + 1);
+                  setPage(np);
+                  fetchPayments(np, limit);
+                }
+              }}
+              disabled={page === pages}
+              className="px-3 py-1 rounded-md bg-white border text-sm disabled:opacity-50"
+            >
+              Next
+            </button>
+
+            <button
+              onClick={() => {
+                if (page !== pages) {
+                  setPage(pages);
+                  fetchPayments(pages, limit);
+                }
+              }}
+              disabled={page === pages}
+              className="px-3 py-1 rounded-md bg-white border text-sm disabled:opacity-50"
+            >
+              {">>"}
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

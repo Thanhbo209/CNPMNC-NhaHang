@@ -83,9 +83,7 @@ const StatCard = ({ title, value, icon: Icon, color }) => (
           {title.includes("Doanh Thu") && " ₫"}
         </p>
       </div>
-      <div
-        className={`p-4 rounded-full bg-gradient-to-tr ${color} shadow-xl `}
-      >
+      <div className={`p-4 rounded-full bg-gradient-to-tr ${color} shadow-xl `}>
         <Icon className="text-white w-8 h-8" />
       </div>
     </div>
@@ -159,32 +157,35 @@ const formatChartData = (data, filter, type = "user") => {
 
 // ===================== MAIN COMPONENT =====================
 const AdminDashboardManager = () => {
-  const [totals, setTotals] = useState({ users: 0, orders: 0, revenue: 0,foods: 0 });
+  const [totals, setTotals] = useState({
+    users: 0,
+    orders: 0,
+    revenue: 0,
+    foods: 0,
+  });
   const [userData, setUserData] = useState([]);
   const [orderData, setOrderData] = useState([]);
   const [topFoods, setTopFoods] = useState([]);
   const [revenueFilter, setRevenueFilter] = useState("week");
   const [userFilter, setUserFilter] = useState("week");
-  
 
   // --- Fetch tổng quan ---
-useEffect(() => {
-  const fetchTotals = async () => {
-    try {
-      const res = await axios.get("http://localhost:2095/api/admin/stats");
-      setTotals({
-        users: res.data.totalUsers || 0,
-        orders: res.data.totalOrders || 0,
-        revenue: res.data.totalRevenue || 0,
-        foods: res.data.totalFoods || 0, // thêm dòng này
-      });
-    } catch (err) {
-      console.error(err);
-    }
-  };
-  fetchTotals();
-}, []);
-
+  useEffect(() => {
+    const fetchTotals = async () => {
+      try {
+        const res = await axios.get("http://localhost:2095/api/admin/stats");
+        setTotals({
+          users: res.data.totalUsers || 0,
+          orders: res.data.totalOrders || 0,
+          revenue: res.data.totalRevenue || 0,
+          foods: res.data.totalFoods || 0, // thêm dòng này
+        });
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    fetchTotals();
+  }, []);
 
   // --- Fetch chart người dùng ---
   useEffect(() => {

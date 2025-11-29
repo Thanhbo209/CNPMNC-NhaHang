@@ -10,10 +10,16 @@ class OrderController {
         .populate("items.food")
         .populate("addedItems.food");
       // Ensure each item has a status for backward compatibility
-      const norm = orders.map(o => {
+      const norm = orders.map((o) => {
         const obj = o.toObject ? o.toObject() : o;
-        obj.items = (obj.items || []).map(it => ({ ...it, status: it.status || 'pending' }));
-        obj.addedItems = (obj.addedItems || []).map(it => ({ ...it, status: it.status || 'pending' }));
+        obj.items = (obj.items || []).map((it) => ({
+          ...it,
+          status: it.status || "pending",
+        }));
+        obj.addedItems = (obj.addedItems || []).map((it) => ({
+          ...it,
+          status: it.status || "pending",
+        }));
         return obj;
       });
       res.json(norm);
@@ -35,8 +41,14 @@ class OrderController {
         return res.status(404).json({ error: "Không tìm thấy đơn hàng" });
 
       const obj = order.toObject ? order.toObject() : order;
-      obj.items = (obj.items || []).map(it => ({ ...it, status: it.status || 'pending' }));
-      obj.addedItems = (obj.addedItems || []).map(it => ({ ...it, status: it.status || 'pending' }));
+      obj.items = (obj.items || []).map((it) => ({
+        ...it,
+        status: it.status || "pending",
+      }));
+      obj.addedItems = (obj.addedItems || []).map((it) => ({
+        ...it,
+        status: it.status || "pending",
+      }));
       res.json(obj);
     } catch (err) {
       res.status(500).json({ error: err.message });
@@ -52,10 +64,16 @@ class OrderController {
         .populate("user", "name email")
         .populate("table", "tableNumber");
       // Normalize item status for backward compatibility
-      const norm = orders.map(o => {
+      const norm = orders.map((o) => {
         const obj = o.toObject ? o.toObject() : o;
-        obj.items = (obj.items || []).map(it => ({ ...it, status: it.status || 'pending' }));
-        obj.addedItems = (obj.addedItems || []).map(it => ({ ...it, status: it.status || 'pending' }));
+        obj.items = (obj.items || []).map((it) => ({
+          ...it,
+          status: it.status || "pending",
+        }));
+        obj.addedItems = (obj.addedItems || []).map((it) => ({
+          ...it,
+          status: it.status || "pending",
+        }));
         return obj;
       });
       res.json(norm);
@@ -93,9 +111,17 @@ class OrderController {
         .populate("addedItems.food")
         .populate("user", "name email");
 
-      const obj = populatedOrder.toObject ? populatedOrder.toObject() : populatedOrder;
-      obj.items = (obj.items || []).map(it => ({ ...it, status: it.status || 'pending' }));
-      obj.addedItems = (obj.addedItems || []).map(it => ({ ...it, status: it.status || 'pending' }));
+      const obj = populatedOrder.toObject
+        ? populatedOrder.toObject()
+        : populatedOrder;
+      obj.items = (obj.items || []).map((it) => ({
+        ...it,
+        status: it.status || "pending",
+      }));
+      obj.addedItems = (obj.addedItems || []).map((it) => ({
+        ...it,
+        status: it.status || "pending",
+      }));
 
       res.json(obj);
     } catch (err) {
@@ -111,7 +137,9 @@ class OrderController {
       if (!order) return res.status(404).json({ error: "Order không tồn tại" });
 
       // Prevent removing items that are currently preparing/ready
-      const incomingItems = Array.isArray(req.body.items) ? req.body.items : null;
+      const incomingItems = Array.isArray(req.body.items)
+        ? req.body.items
+        : null;
       if (incomingItems) {
         // Build sets for incoming identifiers (try _id, fallback to food id)
         const incomingIds = new Set();
@@ -122,21 +150,30 @@ class OrderController {
         }
 
         for (const orig of order.items || []) {
-          const status = (orig.status || '').toString().toLowerCase();
-          if (status === 'preparing' || status === 'ready') {
+          const status = (orig.status || "").toString().toLowerCase();
+          if (status === "preparing" || status === "ready") {
             const origId = String(orig._id);
-            const origFood = orig.food && orig.food._id ? String(orig.food._id) : String(orig.food);
+            const origFood =
+              orig.food && orig.food._id
+                ? String(orig.food._id)
+                : String(orig.food);
             const keptById = incomingIds.has(origId);
             const keptByFood = origFood ? incomingFoodIds.has(origFood) : false;
             if (!keptById && !keptByFood) {
-              return res.status(400).json({ error: `Không thể xóa món đang chế biến/đã sẵn sàng: ${orig.food?.toString() || origId}` });
+              return res.status(400).json({
+                error: `Không thể xóa món đang chế biến/đã sẵn sàng: ${
+                  orig.food?.toString() || origId
+                }`,
+              });
             }
           }
         }
       }
 
       // Similar check for addedItems
-      const incomingAdded = Array.isArray(req.body.addedItems) ? req.body.addedItems : null;
+      const incomingAdded = Array.isArray(req.body.addedItems)
+        ? req.body.addedItems
+        : null;
       if (incomingAdded) {
         const incomingAddedIds = new Set();
         const incomingAddedFoodIds = new Set();
@@ -146,14 +183,23 @@ class OrderController {
         }
 
         for (const orig of order.addedItems || []) {
-          const status = (orig.status || '').toString().toLowerCase();
-          if (status === 'preparing' || status === 'ready') {
+          const status = (orig.status || "").toString().toLowerCase();
+          if (status === "preparing" || status === "ready") {
             const origId = String(orig._id);
-            const origFood = orig.food && orig.food._id ? String(orig.food._id) : String(orig.food);
+            const origFood =
+              orig.food && orig.food._id
+                ? String(orig.food._id)
+                : String(orig.food);
             const keptById = incomingAddedIds.has(origId);
-            const keptByFood = origFood ? incomingAddedFoodIds.has(origFood) : false;
+            const keptByFood = origFood
+              ? incomingAddedFoodIds.has(origFood)
+              : false;
             if (!keptById && !keptByFood) {
-              return res.status(400).json({ error: `Không thể xóa món thêm đang chế biến/đã sẵn sàng: ${orig.food?.toString() || origId}` });
+              return res.status(400).json({
+                error: `Không thể xóa món thêm đang chế biến/đã sẵn sàng: ${
+                  orig.food?.toString() || origId
+                }`,
+              });
             }
           }
         }
@@ -166,7 +212,13 @@ class OrderController {
 
       await order.save(); // ✅ middleware pre("save") chạy ở đây
 
-      res.json(order);
+      // Populate trước khi trả về
+      const populated = await Order.findById(order._id)
+        .populate("table", "tableNumber")
+        .populate("user", "name email")
+        .populate("items.food")
+        .populate("addedItems.food");
+      res.json(populated);
     } catch (err) {
       console.error("❌ Lỗi update order:", err.message);
       res.status(500).json({ error: err.message });
@@ -184,14 +236,16 @@ class OrderController {
 
       // Try find in items
       let found = order.items.id(itemId);
-      let listName = 'items';
+      let listName = "items";
       if (!found) {
         found = order.addedItems.id(itemId);
-        listName = 'addedItems';
+        listName = "addedItems";
       }
 
       if (!found) {
-        return res.status(404).json({ error: "Item không tìm thấy trong order" });
+        return res
+          .status(404)
+          .json({ error: "Item không tìm thấy trong order" });
       }
 
       // validate status if provided
@@ -203,15 +257,19 @@ class OrderController {
       found.status = status || found.status;
 
       // If all non-canceled items are ready, mark order as served so waiter can add items
-      const allItems = [ ...(order.items || []), ...(order.addedItems || []) ];
-      const actionable = allItems.filter(it => {
-        const s = (it.status || '').toString().toLowerCase();
-        return s !== 'canceled' && s !== 'cancel';
+      const allItems = [...(order.items || []), ...(order.addedItems || [])];
+      const actionable = allItems.filter((it) => {
+        const s = (it.status || "").toString().toLowerCase();
+        return s !== "canceled" && s !== "cancel";
       });
 
-      const allReady = actionable.length > 0 && actionable.every(it => (it.status || '').toString().toLowerCase() === 'ready');
+      const allReady =
+        actionable.length > 0 &&
+        actionable.every(
+          (it) => (it.status || "").toString().toLowerCase() === "ready"
+        );
       if (allReady) {
-        order.status = 'served';
+        order.status = "served";
       }
 
       await order.save();
@@ -342,13 +400,19 @@ class OrderController {
         .populate("addedItems.food");
 
       if (!orders || orders.length !== orderIds.length) {
-        return res.status(404).json({ error: "Một hoặc nhiều đơn không tồn tại." });
+        return res
+          .status(404)
+          .json({ error: "Một hoặc nhiều đơn không tồn tại." });
       }
 
       // Ensure all orders are in 'served' state (chờ thanh toán)
-      const notServed = orders.filter(o => (o.status || '').toString().toLowerCase() !== 'served');
+      const notServed = orders.filter(
+        (o) => (o.status || "").toString().toLowerCase() !== "served"
+      );
       if (notServed.length > 0) {
-        return res.status(400).json({ error: "Chỉ có thể gộp các đơn đang chờ thanh toán (served)." });
+        return res.status(400).json({
+          error: "Chỉ có thể gộp các đơn đang chờ thanh toán (served).",
+        });
       }
 
       // Combine items and addedItems
@@ -356,11 +420,27 @@ class OrderController {
       const combinedAdded = [];
       let table = orders[0].table || orders[0].table; // use first order's table
       let user = orders[0].user || null;
-      let orderNote = `Gộp từ: ${orderIds.join(', ')}`;
+      let orderNote = `Gộp từ: ${orderIds.join(", ")}`;
 
       for (const o of orders) {
-        if (Array.isArray(o.items)) combinedItems.push(...o.items.map(it => ({ food: it.food?._id || it.food, quantity: it.quantity, note: it.note || '', status: it.status || 'pending' })));
-        if (Array.isArray(o.addedItems)) combinedAdded.push(...o.addedItems.map(it => ({ food: it.food?._id || it.food, quantity: it.quantity, note: it.note || '', status: it.status || 'pending' })));
+        if (Array.isArray(o.items))
+          combinedItems.push(
+            ...o.items.map((it) => ({
+              food: it.food?._id || it.food,
+              quantity: it.quantity,
+              note: it.note || "",
+              status: it.status || "pending",
+            }))
+          );
+        if (Array.isArray(o.addedItems))
+          combinedAdded.push(
+            ...o.addedItems.map((it) => ({
+              food: it.food?._id || it.food,
+              quantity: it.quantity,
+              note: it.note || "",
+              status: it.status || "pending",
+            }))
+          );
       }
 
       // Create merged order
@@ -370,27 +450,29 @@ class OrderController {
         items: combinedItems,
         addedItems: combinedAdded,
         orderNote,
-        status: 'served',
+        status: "served",
       });
 
       await merged.save();
 
       // Mark source orders as cancelled/merged to avoid double-pay
-      await Promise.all(orders.map(async (o) => {
-        o.status = 'canceled';
-        o.orderNote = `${o.orderNote || ''} \n Gộp vào đơn ${merged._id}`;
-        await o.save();
-      }));
+      await Promise.all(
+        orders.map(async (o) => {
+          o.status = "canceled";
+          o.orderNote = `${o.orderNote || ""} \n Gộp vào đơn ${merged._id}`;
+          await o.save();
+        })
+      );
 
       const populated = await Order.findById(merged._id)
-        .populate('table')
-        .populate('user', 'name email')
-        .populate('items.food')
-        .populate('addedItems.food');
+        .populate("table")
+        .populate("user", "name email")
+        .populate("items.food")
+        .populate("addedItems.food");
 
       res.status(201).json(populated);
     } catch (err) {
-      console.error('❌ Lỗi gộp đơn:', err.message);
+      console.error("❌ Lỗi gộp đơn:", err.message);
       res.status(500).json({ error: err.message });
     }
   }

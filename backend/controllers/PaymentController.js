@@ -51,7 +51,10 @@ class PaymentController {
       const expectedTotal = subtotal + taxAmount;
 
       // If client provided an amount but it doesn't match expected, override with server value
-      const finalAmount = Number(clientAmount) && Number(clientAmount) === expectedTotal ? Number(clientAmount) : expectedTotal;
+      const finalAmount =
+        Number(clientAmount) && Number(clientAmount) === expectedTotal
+          ? Number(clientAmount)
+          : expectedTotal;
 
       const payment = new Payment({
         order,
@@ -102,7 +105,9 @@ class PaymentController {
   async deletePayment(req, res) {
     try {
       // Deleting payments is not allowed for audit reasons
-      return res.status(403).json({ message: "Deleting payments is not allowed." });
+      return res
+        .status(403)
+        .json({ message: "Deleting payments is not allowed." });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }

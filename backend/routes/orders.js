@@ -14,5 +14,4 @@ router.get("/byTable/:tableId", OrderController.getOrderByTable);
 router.post("/create", OrderController.createOrder);
 router.get("/", OrderController.getAllOrders);
 
-
 export default router;

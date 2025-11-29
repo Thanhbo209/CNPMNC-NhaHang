@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import React, { useState, useContext } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
   Utensils,
@@ -13,11 +13,16 @@ import {
   ChevronRight,
   ArrowRight,
   ArrowLeft,
+  LogOut,
 } from "lucide-react";
+import { AuthContext } from "../../login/AuthContext";
 
 const Sidebar = () => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { logout, user } = useContext(AuthContext); // lấy user hiện tại
   const [collapsed, setCollapsed] = useState(false);
+
   const active = (path) => location.pathname === path;
 
   const menuItems = [
@@ -32,13 +37,17 @@ const Sidebar = () => {
     { path: "/admin/feedback", label: "Feedback", icon: MessageCircleReply },
   ];
 
+  const handleLogout = () => {
+    logout();
+    navigate("/");
+  };
+
   return (
     <aside
-  className={`${
-    collapsed ? "w-20" : "w-64"
-  } bg-white text-gray-700 h-screen flex flex-col shadow-lg border-r border-gray-200 transition-all duration-300 ease-in-out sticky top-0`}
->
-
+      className={`${
+        collapsed ? "w-20" : "w-64"
+      } bg-white text-gray-700 h-screen flex flex-col shadow-lg border-r border-gray-200 transition-all duration-300 ease-in-out sticky top-0`}
+    >
       {/* Header */}
       <div
         className={`flex items-center justify-between ${
@@ -46,18 +55,28 @@ const Sidebar = () => {
         } py-5 border-b border-gray-200`}
       >
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-gradient-to-r from-indigo-500 to-cyan-400 rounded-full flex items-center justify-center font-bold text-white shadow-md">
-            T
-          </div>
+          {/* Avatar */}
+          <img
+            src={
+              user?.avatar ||
+              "https://icons.veryicon.com/png/o/miscellaneous/user-avatar/user-avatar-male-5.png"
+            }
+            alt={user?.name || "User"}
+            className="w-10 h-10 rounded-full object-cover shadow-md"
+          />
           {!collapsed && (
             <div className="transition-opacity duration-300">
-              <h2 className="text-lg font-semibold text-gray-800">ThanhCow</h2>
-              <p className="text-xs text-gray-500">Super Admin</p>
+              <h2 className="text-sm font-semibold text-gray-800">
+                {user?.name || "Unknown"}
+              </h2>
+              <p className="text-xs text-gray-500">
+                {user?.email || "email@example.com"}
+              </p>
             </div>
           )}
         </div>
 
-        {/* Nút toggle */}
+        {/* Toggle */}
         <button
           onClick={() => setCollapsed(!collapsed)}
           className="p-1 rounded-md hover:bg-gray-100 text-gray-600 transition"
@@ -66,8 +85,9 @@ const Sidebar = () => {
         </button>
       </div>
 
-        {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto mt-4 px-2">
+      {/* Navigation */}
+      <nav className="flex-1 overflow-y-auto mt-4 px-2 flex flex-col justify-between">
+        <div>
           {!collapsed && (
             <p className="text-xs uppercase text-gray-500 mb-3 tracking-wider px-3">
               Main Menu
@@ -86,11 +106,9 @@ const Sidebar = () => {
                         : "hover:bg-gray-100 text-gray-700"
                     }`}
                   >
-                    {/* Thanh bên trái khi active */}
                     {isActive && (
                       <span className="absolute left-0 top-0 h-full w-[4px] bg-gradient-to-b from-indigo-500 to-cyan-400 rounded-r-md"></span>
                     )}
-
                     <Icon
                       size={18}
                       className={`transition-colors ${
@@ -99,7 +117,6 @@ const Sidebar = () => {
                           : "text-gray-400 group-hover:text-indigo-500"
                       }`}
                     />
-
                     {!collapsed && (
                       <div className="flex justify-between items-center w-full">
                         <span
@@ -126,7 +143,19 @@ const Sidebar = () => {
               );
             })}
           </ul>
-        </nav>
+        </div>
+
+        {/* Logout button */}
+        <div className="mb-4">
+          <button
+            onClick={handleLogout}
+            className="group relative flex items-center gap-3 px-4 py-2.5 rounded-lg text-red-600 hover:bg-red-50 w-full transition"
+          >
+            <LogOut size={18} />
+            {!collapsed && <span className="text-sm">Đăng xuất</span>}
+          </button>
+        </div>
+      </nav>
     </aside>
   );
 };

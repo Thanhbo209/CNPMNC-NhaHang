@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { ClockPlus, Pen, Plus, Trash2, User, UserStar } from "lucide-react";
-import UserModal from "../../components/Admin/modal/UserModal"; // ✅ dùng modal gộp mới
+import UserModal from "../../components/Admin/modal/UserModal";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
@@ -24,6 +24,8 @@ const AdminUserManager = () => {
   const [adminCount, setAdminCount] = useState(0);
   const [recentUsers, setRecentUsers] = useState(0);
 
+  const [searchText, setSearchText] = useState("");
+
   // Xóa user
   const handleDelete = async (id) => {
     if (!window.confirm("Bạn có chắc muốn xóa người dùng này không?")) return;
@@ -34,7 +36,7 @@ const AdminUserManager = () => {
       toast.success("Xóa người dùng thành công!", { theme: "light" });
     } catch (err) {
       console.error("Lỗi xóa user:", err);
-      toast.error(" Xóa thất bại!", { theme: "light" });
+      toast.error("Xóa thất bại!", { theme: "light" });
     }
   };
 
@@ -68,6 +70,15 @@ const AdminUserManager = () => {
     fetchUsers();
   }, []);
 
+  // Filter theo search
+  const filteredUsers = users.filter((user) => {
+    const search = searchText.toLowerCase();
+    return (
+      user.name.toLowerCase().includes(search) ||
+      user.email.toLowerCase().includes(search)
+    );
+  });
+
   return (
     <div className="min-h-screen bg-transparent text-white p-6">
       {/* ====== 3 Card Thống kê ====== */}
@@ -98,6 +109,16 @@ const AdminUserManager = () => {
           <h2 className="text-xl font-semibold text-gray-800">
             Danh sách người dùng
           </h2>
+
+          {/* Search */}
+          <input
+            type="text"
+            placeholder="Tìm theo tên hoặc email..."
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
+            className="px-3 py-2 rounded-lg ml-300 border border-gray-300 text-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+          />
+
           <button
             onClick={handleAdd}
             className="px-4 py-2 flex items-center gap-x-2 text-white text-sm font-semibold tracking-wide
@@ -123,7 +144,7 @@ const AdminUserManager = () => {
               </tr>
             </thead>
             <tbody>
-              {users.map((user, index) => (
+              {filteredUsers.map((user, index) => (
                 <tr
                   key={user._id || index}
                   className="border-b border-gray-200 hover:bg-gray-50 transition-all duration-200"
@@ -180,7 +201,7 @@ const AdminUserManager = () => {
                              bg-yellow-400 rounded-md text-black shadow-md shadow-yellow-300/40
                              hover:bg-yellow-300 hover:shadow-lg hover:shadow-yellow-400/50 transition transform hover:scale-105"
                       >
-                        <Pen size={14} /> 
+                        <Pen size={14} />
                       </button>
 
                       {/* Xóa */}
@@ -190,7 +211,7 @@ const AdminUserManager = () => {
                              bg-red-500 rounded-md text-white shadow-md shadow-red-300/40
                              hover:bg-red-400 hover:shadow-lg hover:shadow-red-400/50 transition transform hover:scale-105"
                       >
-                        <Trash2 size={14} /> 
+                        <Trash2 size={14} />
                       </button>
                     </div>
                   </td>

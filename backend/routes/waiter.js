@@ -3,7 +3,7 @@ import WaiterController from "../controllers/WaiterController.js";
 
 const router = express.Router();
 
-router.get("/tables", WaiterController.getAllTables); 
+router.get("/tables", WaiterController.getAllTables);
 router.get("/active-orders", WaiterController.getActiveOrders);
 router.post("/create-order", WaiterController.createOrder);
 router.put("/update-item-status", WaiterController.updateItemStatus);

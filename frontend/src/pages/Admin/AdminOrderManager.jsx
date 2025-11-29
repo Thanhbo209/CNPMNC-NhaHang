@@ -2,8 +2,8 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { Plus, Pen } from "lucide-react";
 import OrderModal from "../../components/Admin/modal/OrderModal";
-import StatCard from "../../components/common/StatCard";
 import ReservedTableModal from "../../components/Admin/modal/ReservedTableModal";
+import StatCard from "../../components/common/StatCard";
 
 const AdminOrderManager = () => {
   const [tables, setTables] = useState([]);
@@ -11,16 +11,21 @@ const AdminOrderManager = () => {
   const [selectedTable, setSelectedTable] = useState(null);
   const [openOrderModal, setOpenOrderModal] = useState(false);
   const [editOrder, setEditOrder] = useState(null);
+  const [showReservedModal, setShowReservedModal] = useState(false);
 
-  // Tổng hợp dữ liệu thống kê
+  // --- THỐNG KÊ ---
   const totalOrders = orders.length;
   const pendingOrders = orders.filter((o) => o.status === "pending").length;
   const preparingOrders = orders.filter((o) => o.status === "preparing").length;
   const paidOrders = orders.filter((o) => o.status === "paid").length;
-  const [showReservedModal, setShowReservedModal] = useState(false);
+
   const fetchTables = async () => {
-    const res = await axios.get("http://localhost:2095/api/tables");
-    setTables(res.data);
+    try {
+      const res = await axios.get("http://localhost:2095/api/tables");
+      setTables(res.data);
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const fetchOrders = async (tableId) => {
@@ -31,120 +36,105 @@ const AdminOrderManager = () => {
       const orderList = res.data;
       setOrders(orderList);
 
-      // Lấy thông tin bàn hiện tại
       const table = tables.find((t) => t._id === tableId);
-      if (!table) return;
-
-      // Nếu bàn đang reserved, không thay đổi trạng thái
-      if (table.status === "reserved") return;
+      if (!table || table.status === "reserved") return;
 
       const hasActiveOrder = orderList.some((o) =>
         ["pending", "preparing", "served"].includes(o.status)
       );
-
-      const hasPaidAll = orderList.every((o) => o.status === "paid");
-
-      let newStatus = "available";
-      if (hasActiveOrder) newStatus = "occupied";
-      else if (hasPaidAll && orderList.length > 0) newStatus = "available";
+      const newStatus = hasActiveOrder ? "occupied" : "available";
 
       await axios.put(`http://localhost:2095/api/tables/${tableId}`, {
         status: newStatus,
       });
-
-      // Cập nhật state local
       setTables((prev) =>
         prev.map((t) => (t._id === tableId ? { ...t, status: newStatus } : t))
       );
     } catch (err) {
-      console.error("Lỗi fetchOrders:", err);
+      console.error(err);
     }
+  };
+
+  const handleSelectTable = async (table) => {
+    setSelectedTable(table);
+    await fetchOrders(table._id);
+    if (table.status === "reserved") setShowReservedModal(true);
+  };
+
+  const handleOpenOrderModal = (order = null) => {
+    if (!selectedTable) return;
+    if (selectedTable.status === "reserved") return setShowReservedModal(true);
+
+    setEditOrder(order || null);
+    setOpenOrderModal(true);
   };
 
   const handleOrderSaved = (savedOrder) => {
     setOrders((prev) => {
       const idx = prev.findIndex((o) => o._id === savedOrder._id);
-      if (idx !== -1) {
-        const newOrders = [...prev];
-        newOrders[idx] = savedOrder;
-        return newOrders;
-      }
+      if (idx !== -1) return prev.map((o, i) => (i === idx ? savedOrder : o));
       return [savedOrder, ...prev];
     });
 
-    // Cập nhật trạng thái bàn nếu cần
     setTables((prev) =>
       prev.map((t) =>
         t._id === selectedTable._id ? { ...t, status: "occupied" } : t
       )
     );
-
-    // Nếu muốn mở modal tiếp cho order vừa tạo
-    setEditOrder(savedOrder);
-    setOpenOrderModal(true);
   };
 
   useEffect(() => {
     fetchTables();
   }, []);
 
-  const handleSelectTable = async (table) => {
-    setSelectedTable(table);
-    await fetchOrders(table._id);
-
-    // Nếu là bàn "reserved", mở modal đặc biệt
-    if (table.status === "reserved") {
-      setShowReservedModal(true);
-    }
-  };
-
-  const handleOpenOrderModal = (order = null) => {
-    if (!selectedTable) return;
-
-    if (selectedTable.status === "available") {
-      // Thêm order mới
-      setEditOrder(null);
-      setOpenOrderModal(true);
-    } else if (selectedTable.status === "occupied") {
-      // Chỉnh sửa order có sẵn
-      setEditOrder(order);
-      setOpenOrderModal(true);
-    } else if (selectedTable.status === "reserved") {
-      // Không cho thêm/sửa, chỉ mở modal xử lý
-      setShowReservedModal(true);
-    }
+  const statusStyles = {
+    available: {
+      color:
+        "from-green-500 to-green-600 border-green-400 hover:shadow-[0_0_15px_#22c55e]",
+      label: "Trống",
+      dot: "bg-green-400 shadow-[0_0_8px_#22c55e]",
+    },
+    occupied: {
+      color:
+        "from-orange-500 to-orange-600 border-orange-400 hover:shadow-[0_0_15px_#f59e0b]",
+      label: "Đang dùng",
+      dot: "bg-yellow-400 shadow-[0_0_8px_#facc15]",
+    },
+    reserved: {
+      color:
+        "from-purple-500 to-purple-600 border-purple-400 hover:shadow-[0_0_15px_#a855f7]",
+      label: "Đã đặt trước",
+      dot: "bg-purple-400 shadow-[0_0_8px_#a855f7]",
+    },
   };
 
   return (
-    <div className="p-6 text-white flex flex-col gap-6  min-h-screen">
-      {/* -------- KHỐI TRÊN: DANH SÁCH BÀN + THỐNG KÊ -------- */}
+    <div className="p-6 flex flex-col gap-6 min-h-screen text-white">
+      {/* --- Danh sách bàn & thống kê --- */}
       <div className="flex flex-col lg:flex-row gap-6">
-        {/* --- DANH SÁCH BÀN --- */}
-        <div className="bg-white p-6 rounded-2xl shadow-lg shadow-black/10 animate-fade-in flex-1">
-          <div className="flex justify-between">
-            <h2 className="text-3xl font-semibold mb-4 text-gray-800 tracking-wide flex items-center gap-2">
-              <span className="inline-block w-1.5 h-6 bg-sky-500 rounded-full"></span>
+        {/* Danh sách bàn */}
+        <div className="bg-white p-6 rounded-2xl shadow-lg shadow-black/10 flex-1 animate-fade-in">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-3xl font-semibold text-gray-800 flex items-center gap-2">
+              <span className="w-1.5 h-6 bg-sky-500 rounded-full inline-block"></span>{" "}
               Danh sách bàn
             </h2>
-
             <img
               className="w-26"
               src="https://www.pngall.com/wp-content/uploads/8/Restaurant-Chef-PNG-Free-Download.png"
+              alt="chef"
             />
           </div>
 
-          {/* Chú thích trạng thái dùng array + map */}
-          <div className="flex flex-col items-start gap-4 mb-10">
+          <div className="flex flex-col items-start gap-4 mb-6">
             {[
               { label: "Trống", color: "bg-green-400" },
               { label: "Đang dùng", color: "bg-yellow-400" },
               { label: "Đã đặt trước", color: "bg-purple-400" },
-            ].map((status) => (
-              <div key={status.label} className="flex items-center gap-2">
-                <span
-                  className={`w-10 h-4 rounded-full ${status.color}`}
-                ></span>
-                <span className="text-gray-700 text-sm">{status.label}</span>
+            ].map((s) => (
+              <div key={s.label} className="flex items-center gap-2">
+                <span className={`w-10 h-4 rounded-full ${s.color}`}></span>
+                <span className="text-gray-700 text-sm">{s.label}</span>
               </div>
             ))}
           </div>
@@ -157,44 +147,22 @@ const AdminOrderManager = () => {
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 gap-5">
               {tables.map((table) => {
                 const isSelected = selectedTable?._id === table._id;
-
-                // Màu theo trạng thái bàn
-                const statusMap = {
-                  available: {
-                    color:
-                      "from-green-500 to-green-600 border-green-400 hover:shadow-[0_0_15px_#22c55e]",
-                    label: "Trống",
-                    dot: "bg-green-400 shadow-[0_0_8px_#22c55e]",
-                  },
-                  occupied: {
-                    color:
-                      "from-orange-500 to-orange-600 border-orange-400 hover:shadow-[0_0_15px_#f59e0b]",
-                    label: "Đang dùng",
-                    dot: "bg-yellow-400 shadow-[0_0_8px_#facc15]",
-                  },
-                  reserved: {
-                    color:
-                      "from-purple-500 to-purple-600 border-purple-400 hover:shadow-[0_0_15px_#a855f7]",
-                    label: "Đã đặt trước",
-                    dot: "bg-purple-400 shadow-[0_0_8px_#a855f7]",
-                  },
-                };
-
-                const status = statusMap[table.status] || statusMap.available;
+                const status =
+                  statusStyles[table.status] || statusStyles.available;
 
                 return (
                   <div
                     key={table._id}
                     onClick={() => handleSelectTable(table)}
-                    className={`group relative p-5 rounded-2xl cursor-pointer transition-all border flex flex-col justify-between h-[140px]
-              ${
-                isSelected
-                  ? `bg-gradient-to-br ${status.color} border-opacity-80 scale-[1.04]`
-                  : `bg-white border-gray-200 hover:bg-gradient-to-br ${status.color}`
-              }`}
+                    className={`group relative p-5 rounded-2xl cursor-pointer border flex flex-col justify-between h-[140px] transition-all
+                      ${
+                        isSelected
+                          ? `bg-gradient-to-br ${status.color} scale-[1.04]`
+                          : `bg-white border-gray-200 hover:bg-gradient-to-br ${status.color}`
+                      }
+                    `}
                   >
-                    {/* Header */}
-                    <div className="flex items-center justify-between">
+                    <div className="flex justify-between items-center">
                       <h3 className="text-xl font-bold text-gray-800">
                         Bàn {table.tableNumber}
                       </h3>
@@ -203,19 +171,15 @@ const AdminOrderManager = () => {
                       ></div>
                     </div>
 
-                    {/* Thông tin phụ */}
                     <div className="mt-3 text-sm text-gray-600 space-y-1">
                       <p className="flex items-center gap-2">
-                        <span className="text-blue-500">☕️</span> {table.seats}{" "}
-                        chỗ
+                        ☕️ {table.seats} chỗ
                       </p>
                       <p className="flex items-center gap-2">
-                        <span className="text-indigo-500">🏢</span> Tầng{" "}
-                        {table.floor}
+                        🏢 Tầng {table.floor}
                       </p>
                     </div>
 
-                    {/* Nhãn trạng thái */}
                     <span
                       className="absolute bottom-4 right-2 text-xs font-medium text-gray-800 bg-gray-100/70 px-2 py-1 rounded-md backdrop-blur-sm"
                       style={{ textShadow: "0 0 6px rgba(0,0,0,0.2)" }}
@@ -229,7 +193,7 @@ const AdminOrderManager = () => {
           )}
         </div>
 
-        {/* --- THỐNG KÊ --- */}
+        {/* Thống kê */}
         <div className="flex flex-col gap-4 w-full lg:w-[280px]">
           <StatCard title="Tổng số Order" value={totalOrders} color="purple" />
           <StatCard
@@ -242,15 +206,12 @@ const AdminOrderManager = () => {
         </div>
       </div>
 
-      {/* -------- DANH SÁCH ORDER -------- */}
+      {/* --- Danh sách Order --- */}
       {selectedTable && (
-        <div
-          key={selectedTable._id}
-          className="bg-white p-6 rounded-2xl shadow-lg animate-fade-in mt-6"
-        >
+        <div className="bg-white p-6 rounded-2xl shadow-lg animate-fade-in mt-6">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-semibold text-gray-800 tracking-wide flex items-center gap-2">
-              <span className="inline-block w-2 h-8 bg-gradient-to-b from-green-400 to-emerald-600 rounded-full shadow-md"></span>
+            <h2 className="text-2xl font-semibold text-gray-800 flex items-center gap-2">
+              <span className="w-2 h-8 bg-gradient-to-b from-green-400 to-emerald-600 rounded-full shadow-md inline-block"></span>
               Quản lý hóa đơn —{" "}
               <span className="text-blue-500 font-bold">
                 Bàn {selectedTable.name || selectedTable.tableNumber}
@@ -259,9 +220,7 @@ const AdminOrderManager = () => {
 
             <button
               onClick={() => handleOpenOrderModal()}
-              className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600
-                   px-5 py-2.5 rounded-xl font-medium text-white shadow-md shadow-blue-400/40
-                   transition duration-300 hover:shadow-lg hover:scale-[1.03]"
+              className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 px-5 py-2.5 rounded-xl text-white shadow-md hover:shadow-lg hover:scale-[1.03] transition"
             >
               <Plus size={18} /> Tạo Order mới
             </button>
@@ -316,7 +275,7 @@ const AdminOrderManager = () => {
                     </h3>
 
                     <div
-                      className={`grid grid-cols-1 md:grid-cols-2 gap-4 overflow-y-auto pr-2 custom-scroll`}
+                      className="grid grid-cols-1 md:grid-cols-2 gap-4 overflow-y-auto pr-2"
                       style={{ maxHeight: "600px" }}
                     >
                       {sectionOrders.length === 0 ? (
@@ -327,7 +286,7 @@ const AdminOrderManager = () => {
                         sectionOrders.map((order) => (
                           <div
                             key={order._id}
-                            className="bg-white rounded-2xl p-4 border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200 flex flex-col justify-between"
+                            className="bg-white rounded-2xl p-4 border border-gray-200 shadow-sm hover:shadow-md transition flex flex-col justify-between"
                           >
                             {/* Header */}
                             <div className="flex justify-between items-center mb-2">
@@ -348,7 +307,7 @@ const AdminOrderManager = () => {
                               </span>
                             </div>
 
-                            {/* Danh sách món */}
+                            {/* Món ăn */}
                             <div className="border-t border-gray-200 pt-2 pb-2 space-y-1 text-sm">
                               <p className="text-gray-500 font-medium">Món:</p>
                               {order.items?.map((item, i) => (
@@ -392,7 +351,7 @@ const AdminOrderManager = () => {
                               </p>
                             </div>
 
-                            {/* Nút hành động */}
+                            {/* Nút chỉnh sửa / thêm món */}
                             {section.key === "processing" && (
                               <button
                                 onClick={() => handleOpenOrderModal(order)}
@@ -421,6 +380,7 @@ const AdminOrderManager = () => {
         </div>
       )}
 
+      {/* --- Modals --- */}
       {openOrderModal && (
         <OrderModal
           open={openOrderModal}
@@ -430,33 +390,24 @@ const AdminOrderManager = () => {
           onSaved={handleOrderSaved}
         />
       )}
+
       {showReservedModal && selectedTable && (
         <ReservedTableModal
           onClose={() => setShowReservedModal(false)}
           onArrived={async () => {
             try {
-              // 1. Cập nhật tất cả reservation pending sang confirmed
               await axios.patch(
-                `http://localhost:2095/api/reservations/byTable/${selectedTable._id}/status`,
-                {}, // body rỗng
-                {
-                  headers: { "Content-Type": "application/json" },
-                  withCredentials: true, // nếu backend có credentials
-                }
+                `http://localhost:2095/api/reservations/byTable/${selectedTable._id}/status`
               );
-              // 2. Lấy lại danh sách bàn
               await fetchTables();
-
-              // 3. Cập nhật state local
               setShowReservedModal(false);
               setSelectedTable((prev) => ({ ...prev, status: "occupied" }));
             } catch (err) {
-              console.error("Lỗi xác nhận khách:", err);
+              console.error(err);
             }
           }}
           onCancel={async () => {
             try {
-              // Hủy đặt bàn => bàn trống
               await axios.put(
                 `http://localhost:2095/api/tables/${selectedTable._id}`,
                 { status: "available" }

@@ -1,35 +1,42 @@
-import React, { useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import React, { useState, useContext } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
-  Utensils,
   ReceiptText,
-  BookOpenCheck,
   MessageCircleReply,
   ChevronRight,
   ArrowRight,
   ArrowLeft,
+  LogOut,
 } from "lucide-react";
+import { AuthContext } from "../../login/AuthContext"; // import đúng path AuthContext
 
 const SidebarWaiter = () => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { logout } = useContext(AuthContext);
   const [collapsed, setCollapsed] = useState(false);
+
   const active = (path) => location.pathname === path;
 
   const menuItems = [
-    { path: "/Waiter/dashboard", label: "Dashboard", icon: LayoutDashboard },
-    { path: "/Waiter/order", label: "Đơn hàng", icon: ReceiptText },
-    { path: "/Waiter/order/history", label: "Lịch sử đơn", icon: ReceiptText },
-    { path: "/Waiter/feedback", label: "Feedback", icon: MessageCircleReply },
+    { path: "/waiter/dashboard", label: "Dashboard", icon: LayoutDashboard },
+    { path: "/waiter/order", label: "Đơn hàng", icon: ReceiptText },
+    { path: "/waiter/order/history", label: "Lịch sử đơn", icon: ReceiptText },
+    { path: "/waiter/feedback", label: "Feedback", icon: MessageCircleReply },
   ];
+
+  const handleLogout = () => {
+    logout();
+    navigate("/");
+  };
 
   return (
     <aside
-  className={`${
-    collapsed ? "w-20" : "w-64"
-  } bg-white text-gray-700 h-screen flex flex-col shadow-lg border-r border-gray-200 transition-all duration-300 ease-in-out sticky top-0`}
->
-
+      className={`${
+        collapsed ? "w-20" : "w-64"
+      } bg-white text-gray-700 h-screen flex flex-col shadow-lg border-r border-gray-200 transition-all duration-300 ease-in-out sticky top-0`}
+    >
       {/* Header */}
       <div
         className={`flex items-center justify-between ${
@@ -48,7 +55,7 @@ const SidebarWaiter = () => {
           )}
         </div>
 
-        {/* Nút toggle */}
+        {/* Toggle */}
         <button
           onClick={() => setCollapsed(!collapsed)}
           className="p-1 rounded-md hover:bg-gray-100 text-gray-600 transition"
@@ -57,8 +64,9 @@ const SidebarWaiter = () => {
         </button>
       </div>
 
-        {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto mt-4 px-2">
+      {/* Navigation */}
+      <nav className="flex-1 overflow-y-auto mt-4 px-2 flex flex-col justify-between">
+        <div>
           {!collapsed && (
             <p className="text-xs uppercase text-gray-500 mb-3 tracking-wider px-3">
               Main Menu
@@ -77,11 +85,9 @@ const SidebarWaiter = () => {
                         : "hover:bg-gray-100 text-gray-700"
                     }`}
                   >
-                    {/* Thanh bên trái khi active */}
                     {isActive && (
                       <span className="absolute left-0 top-0 h-full w-[4px] bg-gradient-to-b from-indigo-500 to-cyan-400 rounded-r-md"></span>
                     )}
-
                     <Icon
                       size={18}
                       className={`transition-colors ${
@@ -90,7 +96,6 @@ const SidebarWaiter = () => {
                           : "text-gray-400 group-hover:text-indigo-500"
                       }`}
                     />
-
                     {!collapsed && (
                       <div className="flex justify-between items-center w-full">
                         <span
@@ -117,7 +122,19 @@ const SidebarWaiter = () => {
               );
             })}
           </ul>
-        </nav>
+        </div>
+
+        {/* Logout button */}
+        <div className="mb-4">
+          <button
+            onClick={handleLogout}
+            className="group relative flex items-center gap-3 px-4 py-2.5 rounded-lg text-red-600 hover:bg-red-50 w-full transition"
+          >
+            <LogOut size={18} />
+            {!collapsed && <span className="text-sm">Đăng xuất</span>}
+          </button>
+        </div>
+      </nav>
     </aside>
   );
 };
